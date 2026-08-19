@@ -21,10 +21,13 @@ BUILDERS = {
 }
 
 class Shapes:
-    @staticmethod
-    def block(x, y, z, bid) -> list[Block]:
-        return [x, y, z, bid]
 
+    @staticmethod
+    def block(x: int, y: int, z: int, bid: int) -> list[Block]:
+        coords = []
+        coords.append((x, y, z, bid))
+        return coords
+    
     @staticmethod
     def cuboid(x1, y1, z1, x2, y2, z2, bid) -> list[Block]:
         ax, ay, az = min(x1, x2), min(y1, y2), min(z1, z2)

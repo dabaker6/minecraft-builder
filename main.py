@@ -29,12 +29,11 @@ def build(body: BuildBatch, service: ServiceDep):
     results = []
 
     for shape in body.shapes:
+        kept, dropped = service.add_shape(shape)
+        results.append({"shape": shape.type, "kept": kept, "dropped": dropped})
+    service.execute()
+    return results
 
-        service.add_shape(shape)
-    return service.execute()
-
-
-# - add kept check
 # - add forbid
 
 if __name__ == "__main__":

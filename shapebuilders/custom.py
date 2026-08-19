@@ -17,7 +17,7 @@ BUILDERS = {
     "floor": lambda p: Shapes.floor(p.x1, p.y, p.z1, p.x2, p.z2, p.bid),
     "triangle": lambda p: Shapes.triangle(p.size, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid),
     "slope": lambda p: Shapes.slope(p.length, p.height, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid),    
-    #"pyramid",
+    "pyramid": lambda p: Shapes.pyramid(p.size, p.ox, p.oy, p.oz, p.bid)
 }
 
 class Shapes:
@@ -73,6 +73,14 @@ class Shapes:
 
         return coords
 
+    @staticmethod
+    def pyramid(size, ox, oy, oz, bid) -> list[Block]:
+        coords = []
+        for y in range(0, size // 2):
+            levelsize = size - (y * 2)
+            coords += Shapes.emptyCuboid(levelsize, levelsize, 1, ox+y, oy+y, oz+y, bid)
+        return coords
+    
     @staticmethod
     def floor(x1, y, z1, x2, z2, bid) -> list[Block]:
         return Shapes.cuboid(x1, y, z1, x2, y, z2, bid )

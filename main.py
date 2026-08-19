@@ -34,8 +34,6 @@ def build(body: BuildBatch, service: ServiceDep):
     service.execute()
     return results
 
-# - add forbid
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 from typing import Union, Literal, Annotated
 
@@ -11,92 +11,101 @@ class Orientation(str, Enum):
     west = "west"
 
 class Block(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["block"]
-    x: int
-    y: int
-    z: int
-    bid: int
+    x: int = Field(ge=0)
+    y: int = Field(ge=0)
+    z: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 # ------ requests --------
 
 class CuboidBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["cuboid"]
-    x1: int
-    y1: int
-    z1: int
-    x2: int
-    y2: int
-    z2: int
-    bid: int
+    x1: int = Field(ge=0)
+    y1: int = Field(ge=0)
+    z1: int = Field(ge=0)
+    x2: int = Field(ge=0)
+    y2: int = Field(ge=0)
+    z2: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 class WallBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["wall"]
-    length: int
-    height: int
+    length: int = Field(ge=0)
+    height: int = Field(ge=0)
     orientation: Orientation
-    ox: int
-    oy: int
-    oz: int
-    bid: int
+    ox: int = Field(ge=0)
+    oy: int = Field(ge=0)
+    oz: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 class EmptyCuboidBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["emptyCuboid"]
-    xlength: int
-    zlength: int
-    height: int    
-    ox: int
-    oy: int
-    oz: int
-    bid: int
+    xlength: int = Field(ge=0)
+    zlength: int = Field(ge=0)
+    height: int = Field(ge=0)
+    ox: int = Field(ge=0)
+    oy: int = Field(ge=0)
+    oz: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 class FloorBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["floor"]
-    x1: int
-    y: int
-    z1: int
-    x2: int
-    z2: int
-    bid: int
+    x1: int = Field(ge=0)
+    y: int = Field(ge=0)
+    z1: int = Field(ge=0)
+    x2: int = Field(ge=0)
+    z2: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 class TriangleBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["triangle"]
-    size: int
+    size: int = Field(ge=0)
     orientation: Orientation
-    ox: int
-    oy: int
-    oz: int
-    bid: int
+    ox: int = Field(ge=0)
+    oy: int = Field(ge=0)
+    oz: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 class SlopeBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["slope"]
-    length: int
-    height: int
+    length: int = Field(ge=0)
+    height: int = Field(ge=0)
     orientation: Orientation
-    ox: int
-    oy: int
-    oz: int
-    bid: int
+    ox: int = Field(ge=0)
+    oy: int = Field(ge=0)
+    oz: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 class PyramidBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     type: Literal["pyramid"]
-    size: int
-    ox: int
-    oy: int
-    oz: int
-    bid: int
+    size: int = Field(ge=0)
+    ox: int = Field(ge=0)
+    oy: int = Field(ge=0)
+    oz: int = Field(ge=0)
+    bid: int = Field(ge=0)
 
 # To implement
-class SphereBody(BaseModel):
-    type: Literal["sphere"]
-    x: int
-    y: int
-    z: int
-    radius: int
-    bid: int
+#class SphereBody(BaseModel):
+#    model_config = ConfigDict(extra="forbid")
+#    type: Literal["sphere"]
+#    x: int
+#    y: int
+#    z: int
+#    radius: int
+#    bid: int
 
 #Batch
 
-ShapeSpec = Union [Block, CuboidBody, WallBody, EmptyCuboidBody, FloorBody, TriangleBody, SlopeBody, SphereBody, PyramidBody ]
+ShapeSpec = Union [Block, CuboidBody, WallBody, EmptyCuboidBody, FloorBody, TriangleBody, SlopeBody, PyramidBody ]
 
 class BuildBatch(BaseModel):
     """

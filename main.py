@@ -2,10 +2,14 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import FastAPI, Depends, Request
+from fastapi.responses import JSONResponse
 
 from factories.build_factory import BuildFactory
 from buildservices.base import BuildService
-from shapebuilders.schemas import BuildBatch, StatusResult
+from shapebuilders.custom import BUILDERS
+from shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError
+
+import uuid
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,20 +24,44 @@ def get_service(request: Request) -> BuildService:
 
 ServiceDep = Annotated[BuildService, Depends(get_service)]
 
-@app.get("/status", response_model=StatusResult)
-def get_status(service: ServiceDep):
-    return {"pending": service.pending}
+@app.exception_handler(BuildBusyError)
+async def build_busy_handler(request: Request, exc: BuildBusyError):
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+@app.exception_handler(IndexError)
+async def no_undo_history_handler(request: Request, exc: IndexError):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 @app.post("/build")
 def build(body: BuildBatch, service: ServiceDep):
-    results = []
+    guid=uuid.uuid4()
 
-    for shape in body.shapes:
-        kept, dropped = service.add_shape(shape)
-        results.append({"shape": shape.type, "kept": kept, "dropped": dropped})
-    service.execute()
-    return results
+    all_blocks = []
+    shapes = []
+    
+    for shape in body.shapes:        
+        blocks = BUILDERS[shape.type](shape)
+        all_blocks.extend(blocks)
+        shapes.append(shape.type)
+
+    kept, dropped = service.build(all_blocks, guid)
+
+    return BuildResult(
+        type=shapes,
+        queued=len(all_blocks), 
+        kept=kept, 
+        dropped=dropped
+        ) 
+
+@app.post("/undo")
+def undo(service: ServiceDep) -> UndoResult:
+    return service.undo()    
+
+@app.get("/map")
+def map(service: ServiceDep) -> MapResult:
+    return service.map_size
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn    
     uvicorn.run(app, host="127.0.0.1", port=8000)
+    

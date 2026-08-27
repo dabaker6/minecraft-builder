@@ -1,22 +1,18 @@
 from typing import Protocol
+import uuid
+from shapebuilders.schemas import Block, MapResult, UndoResult
 
 class BuildService(Protocol):
 
-    def add_shape(self, shape) -> tuple[int, int]:
+    def build(self, blocks: list[Block], build_id: uuid.UUID) -> tuple[int, int]:
         ...
 
     @property
-    def pending(self) -> int:
-        ...
-
-    def _enqueue(self, blocks) -> tuple[int, int]:
-        ...
-
-    def execute(self) -> int:
+    def map_size(self) -> MapResult:
         ...
 
     def close(self) -> None:
         ...
 
-    def undo(self) -> None:
+    def undo(self) -> UndoResult:
         ...

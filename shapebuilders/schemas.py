@@ -1,6 +1,12 @@
+import uuid
+
 from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 from typing import Union, Literal, Annotated
+
+# -------- exceptions ------
+class BuildBusyError(Exception):
+    pass
 
 # ------ geometry --------
 
@@ -12,7 +18,7 @@ class Orientation(str, Enum):
 
 class Block(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    type: Literal["block"]
+    type: Literal["block"] = "block"
     x: int = Field(ge=0)
     y: int = Field(ge=0)
     z: int = Field(ge=0)
@@ -114,13 +120,17 @@ class BuildBatch(BaseModel):
     shapes: list[Annotated[ShapeSpec, Field(discriminator="type")]]
 
 # ------ responses --------
-class QueueResult(BaseModel):
+class BuildResult(BaseModel):
+    type: list[str]
     queued: int
-    dropped: int
-    pending: int
+    dropped: int 
+    kept: int 
  
-class ExecuteResult(BaseModel):
-    executing: int
+class UndoResult(BaseModel):
+    build_id: uuid.UUID
+    blocks_restored: int
  
-class StatusResult(BaseModel):
-    pending: int
+class MapResult(BaseModel):
+    width: int
+    height: int
+    length: int

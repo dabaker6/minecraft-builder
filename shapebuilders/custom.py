@@ -10,26 +10,26 @@ _VECTORS = {
 }
 
 BUILDERS = {
-    "block": lambda p: Shapes.block(p.x, p.y, p.z, p.bid),
-    "cuboid": lambda p: Shapes.cuboid(p.x1, p.y1, p.z1, p.x2, p.y2, p.z2, p.bid),
-    "wall": lambda p: Shapes.wall(p.length, p.height, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid),
-    "emptyCuboid": lambda p: Shapes.emptyCuboid(p.xlength, p.zlength, p.height, p.ox, p.oy, p.oz, p.bid),
-    "floor": lambda p: Shapes.floor(p.x1, p.y, p.z1, p.x2, p.z2, p.bid),
-    "triangle": lambda p: Shapes.triangle(p.size, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid),
-    "slope": lambda p: Shapes.slope(p.length, p.height, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid),    
-    "pyramid": lambda p: Shapes.pyramid(p.size, p.ox, p.oy, p.oz, p.bid)
+    "block": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.block(p.x, p.y, p.z, p.bid)],
+    "cuboid": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.cuboid(p.x1, p.y1, p.z1, p.x2, p.y2, p.z2, p.bid)],
+    "wall": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.wall(p.length, p.height, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid)],
+    "emptyCuboid": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.emptyCuboid(p.xlength, p.zlength, p.height, p.ox, p.oy, p.oz, p.bid)],
+    "floor": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.floor(p.x1, p.y, p.z1, p.x2, p.z2, p.bid)],
+    "triangle": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.triangle(p.size, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid)],
+    "slope": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.slope(p.length, p.height, _VECTORS[p.orientation], p.ox, p.oy, p.oz, p.bid)],    
+    "pyramid": lambda p: [Block(x=x,y=y,z=z,bid=b) for (x,y,z,b) in Shapes.pyramid(p.size, p.ox, p.oy, p.oz, p.bid)]
 }
 
 class Shapes:
 
     @staticmethod
-    def block(x: int, y: int, z: int, bid: int) -> list[Block]:
+    def block(x: int, y: int, z: int, bid: int) -> list[tuple]:
         coords = []
         coords.append((x, y, z, bid))
         return coords
     
     @staticmethod
-    def cuboid(x1, y1, z1, x2, y2, z2, bid) -> list[Block]:
+    def cuboid(x1, y1, z1, x2, y2, z2, bid) -> list[tuple]:
         ax, ay, az = min(x1, x2), min(y1, y2), min(z1, z2)
         bx, by, bz = max(x1, x2), max(y1, y2), max(z1, z2)
 
@@ -42,7 +42,7 @@ class Shapes:
         return coords
 
     @staticmethod
-    def wall(length, height, orientation, ox, oy, oz, bid) -> list[Block]:
+    def wall(length, height, orientation, ox, oy, oz, bid) -> list[tuple]:
         """
         Creates a wall shape with the specified dimensions and orientation.
         NORTH = (0, 0, -1)
@@ -65,7 +65,7 @@ class Shapes:
         return coords 
 
     @staticmethod
-    def emptyCuboid(xlength, zlength, height, ox, oy, oz, bid) -> list[Block]:
+    def emptyCuboid(xlength, zlength, height, ox, oy, oz, bid) -> list[tuple]:
         coords = Shapes.wall(xlength,height,_VECTORS["east"],ox,oy,oz,bid) + \
         Shapes.wall(xlength,height,_VECTORS["east"],ox,oy,oz+zlength-1,bid) + \
         Shapes.wall(zlength-2,height,_VECTORS["south"],ox,oy,oz+1,bid) + \
@@ -74,19 +74,24 @@ class Shapes:
         return coords
 
     @staticmethod
-    def pyramid(size, ox, oy, oz, bid) -> list[Block]:
+    def pyramid(size, ox, oy, oz, bid) -> list[tuple]:
         coords = []
         for y in range(0, size // 2):
             levelsize = size - (y * 2)
-            coords += Shapes.emptyCuboid(levelsize, levelsize, 1, ox+y, oy+y, oz+y, bid)
+            coords.extend(Shapes.emptyCuboid(levelsize, levelsize, 1, ox+y, oy+y, oz+y, bid))
+
+        if size % 2 != 0:
+            mid = size // 2 
+            coords.extend(Shapes.block(x=ox+mid, y=oy+mid, z=ox+mid, bid=bid))
+        
         return coords
     
     @staticmethod
-    def floor(x1, y, z1, x2, z2, bid) -> list[Block]:
+    def floor(x1, y, z1, x2, z2, bid) -> list[tuple]:
         return Shapes.cuboid(x1, y, z1, x2, y, z2, bid )
 
     @staticmethod
-    def triangle(size, orientation, ox, oy, oz, bid) -> list[Block]:        
+    def triangle(size, orientation, ox, oy, oz, bid) -> list[tuple]:        
         coords = []        
 
         dx, _, dz = orientation # Unpack the orientation tuple into dx, dy, dz
@@ -99,7 +104,7 @@ class Shapes:
         return coords    
 
     @staticmethod    
-    def slope(length, height, orientation, ox, oy, oz, bid) -> list[Block]:
+    def slope(length, height, orientation, ox, oy, oz, bid) -> list[tuple]:
         """
         Creates a sloped shape with the specified dimensions and orientation.
         NORTH = (0, 0, -1)

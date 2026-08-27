@@ -40,8 +40,8 @@ class CuboidBody(BaseModel):
 class WallBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["wall"]
-    length: int = Field(ge=0)
-    height: int = Field(ge=0)
+    length: int = Field(gt=0)
+    height: int = Field(gt=0)
     orientation: Orientation
     ox: int = Field(ge=0)
     oy: int = Field(ge=0)
@@ -51,9 +51,9 @@ class WallBody(BaseModel):
 class EmptyCuboidBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["emptyCuboid"]
-    xlength: int = Field(ge=0)
-    zlength: int = Field(ge=0)
-    height: int = Field(ge=0)
+    xlength: int = Field(gt=0)
+    zlength: int = Field(gt=0)
+    height: int = Field(gt=0)
     ox: int = Field(ge=0)
     oy: int = Field(ge=0)
     oz: int = Field(ge=0)
@@ -72,7 +72,7 @@ class FloorBody(BaseModel):
 class TriangleBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["triangle"]
-    size: int = Field(ge=0)
+    size: int = Field(ge=3)
     orientation: Orientation
     ox: int = Field(ge=0)
     oy: int = Field(ge=0)
@@ -82,8 +82,8 @@ class TriangleBody(BaseModel):
 class SlopeBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["slope"]
-    length: int = Field(ge=0)
-    height: int = Field(ge=0)
+    length: int = Field(gt=0)
+    height: int = Field(gt=0)
     orientation: Orientation
     ox: int = Field(ge=0)
     oy: int = Field(ge=0)
@@ -93,7 +93,7 @@ class SlopeBody(BaseModel):
 class PyramidBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["pyramid"]
-    size: int = Field(ge=0)
+    size: int = Field(ge=3)
     ox: int = Field(ge=0)
     oy: int = Field(ge=0)
     oz: int = Field(ge=0)

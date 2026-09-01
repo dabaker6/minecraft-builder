@@ -34,6 +34,16 @@ async def no_undo_history_handler(request: Request, exc: IndexError):
 
 @app.post("/build")
 def build(body: BuildBatch, service: ServiceDep):
+    """
+    Build one or more shapes in the Minecraft world.
+
+    Multiple shapes can be sent in one request. These shapes are placed in the order given, as a single build. The world uses
+    (x, y, z) coordinates where y is height (up). Coordinates must be within the build zone. 
+    
+    The size of the map can be obtained through the map tool.
+    
+    If a build looks wrong, call the undo tool to revert it.
+    """
     guid=uuid.uuid4()
 
     all_blocks = []
@@ -50,15 +60,25 @@ def build(body: BuildBatch, service: ServiceDep):
         type=shapes,
         queued=len(all_blocks), 
         kept=kept, 
-        dropped=dropped
+        dropped=dropped,
+        build_id=guid
         ) 
 
 @app.post("/undo")
 def undo(service: ServiceDep) -> UndoResult:
+    '''
+    Undo the last build.
+
+    When a build is requested all shapes for that build are placed on an undo stack. 
+    If no builds are present an http 400 bad request is returned
+    '''
     return service.undo()    
 
 @app.get("/map")
 def map(service: ServiceDep) -> MapResult:
+    '''
+    Returns the size of the map.
+    '''
     return service.map_size
 
 if __name__ == "__main__":

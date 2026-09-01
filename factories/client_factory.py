@@ -1,5 +1,4 @@
 from config import AUTH_PROVIDER, USERNAME
-from authproviders.throwaway import ThrowawayAuthProvider
 from pyclassic.client import SimpleAuth
 
 class ClientFactory:

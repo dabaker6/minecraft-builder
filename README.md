@@ -7,9 +7,9 @@ WEST  = (-1, 0, 0)
 
 To implement:
 - sphere
-- add to docs?
-- add undo
 - error handling to give better feedback to LLM
+- TraceIds
+- MCP
 
 0: Air 
 1: Stone

@@ -22,7 +22,11 @@ class Block(BaseModel):
     x: int = Field(ge=0, description="X coordinate to place the block")
     y: int = Field(ge=0, description="Y coordinate to place the block")
     z: int = Field(ge=0, description="Z coordinate to place the block")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: int | str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+
+class BlockInfo(BaseModel):
+    id: str = Field(description="Block ID to pass as 'bid' when building")
+    name: str = Field(description="Human readable block name")
 
 # ------ requests --------
 
@@ -35,7 +39,7 @@ class CuboidBody(BaseModel):
     x2: int = Field(ge=0, description="Second x coordinate, along with x1 provides the length of the cuboid in the x plane")
     y2: int = Field(ge=0, description="Second y coordinate, along with y1 provides the length of the cuboid in the y plane")
     z2: int = Field(ge=0, description="Second z coordinate, along with z1 provides the length of the cuboid in the z plane")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
 
 class WallBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -46,7 +50,7 @@ class WallBody(BaseModel):
     ox: int = Field(ge=0, description="X coordinate for the origin of the wall")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the wall")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the wall")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
 
 class EmptyCuboidBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -57,7 +61,7 @@ class EmptyCuboidBody(BaseModel):
     ox: int = Field(ge=0, description="X coordinate for the origin of the empty cuboid")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the empty cuboid")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the empty cuboid")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
 
 class FloorBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -67,7 +71,7 @@ class FloorBody(BaseModel):
     z1: int = Field(ge=0, description="First z coordinate, along with z2 provides the length of the floor in the z plane")
     x2: int = Field(ge=0, description="Second x coordinate, along with x1 provides the length of the floor in the x plane")    
     z2: int = Field(ge=0, description="Second z coordinate, along with z1 provides the length of the floor in the z plane")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
 
 class TriangleBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -77,7 +81,7 @@ class TriangleBody(BaseModel):
     ox: int = Field(ge=0, description="X coordinate for the origin of the triangle")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the triangle")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the triangle")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
 
 class SlopeBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -88,7 +92,7 @@ class SlopeBody(BaseModel):
     ox: int = Field(ge=0, description="X coordinate for the origin of the slope")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the slope")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the slope")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
 
 class PyramidBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -97,7 +101,7 @@ class PyramidBody(BaseModel):
     ox: int = Field(ge=0, description="X coordinate for the origin of the pyramid")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the pyramid")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the pyramid")
-    bid: int = Field(ge=0, description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
+    bid: str = Field(description="Block type ID (e.g. 0=air, 1=stone, 2=grass etc...)")
 
 # To implement
 #class SphereBody(BaseModel):
@@ -107,7 +111,7 @@ class PyramidBody(BaseModel):
 #    y: int
 #    z: int
 #    radius: int
-#    bid: int
+#    bid: str
 
 #Batch
 
@@ -135,3 +139,8 @@ class MapResult(BaseModel):
     width: int = Field(description="Map size in the x plane")
     height: int = Field(description="Map size in the y plane")
     length: int = Field(description="Mapp size in the z plane")
+
+class PaletteResult(BaseModel):
+    source: str = Field(description="Which palette file is being used")
+    count: int = Field(description="Number of available block types")
+    blocks: list[BlockInfo] = Field(description="All block types available to build with as id/name pairs")

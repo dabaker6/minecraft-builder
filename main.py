@@ -6,8 +6,10 @@ from fastapi.responses import JSONResponse
 
 from factories.build_factory import BuildFactory
 from buildservices.base import BuildService
-from shapebuilders.custom import BUILDERS
-from shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError
+from shapebuilders.shapes import BUILDERS
+from shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError, BlockInfo, PaletteResult
+
+from palettes.palette import InvalidBlockError, load_palette
 
 import uuid
 
@@ -31,6 +33,10 @@ async def build_busy_handler(request: Request, exc: BuildBusyError):
 @app.exception_handler(IndexError)
 async def no_undo_history_handler(request: Request, exc: IndexError):
     return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+@app.exception_handler(InvalidBlockError)
+async def invalid_block_error(request: Request, exc: InvalidBlockError):
+    return JSONResponse(status_code=400, content={"detail": str(exc), "hint": "please try /blockids to get a valid list of blocks"})
 
 @app.post("/build")
 def build(body: BuildBatch, service: ServiceDep):
@@ -77,9 +83,20 @@ def undo(service: ServiceDep) -> UndoResult:
 @app.get("/map")
 def map(service: ServiceDep) -> MapResult:
     '''
-    Returns the size of the map.
+    Returns the size of the map in x, y and z planes
     '''
     return service.map_size
+
+@app.get("/blockids")
+def blockids(service: ServiceDep) -> PaletteResult:
+    """
+    Return all available blocks and their description
+
+    Every block can be represented by a unique id, which is passed as the bid when building,
+    and a human readable name. Use this method to help pick which block to use.
+    Each server could have it's own list of blocks, so use this endpoint as a concrete list
+    """
+    return service.palette
 
 if __name__ == "__main__":
     import uvicorn    

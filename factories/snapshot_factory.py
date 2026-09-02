@@ -1,6 +1,6 @@
 from config import SNAPSHOT_STORE
-from undoservice.base import UndoService
-from undoservice import inmemory
+from undoservices.base import UndoService
+from undoservices import inmemory
 
 class UndoFactory:
     @staticmethod

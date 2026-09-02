@@ -1,5 +1,5 @@
 #This is in custom shapes, should live there or here?????
-from shapebuilders.custom import Shapes
+from shapebuilders.shapes import Shapes
 
 # Vectors to represent allignment
 _VECTORS = {

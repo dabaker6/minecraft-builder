@@ -5,20 +5,24 @@ import time
 from buildservices.base import BuildService
 from factories.client_factory import ClientFactory
 from factories.snapshot_factory import UndoFactory
-from undoservice.base import Snapshot
+from palettes.palette import BlockPalette, InvalidBlockError
+from undoservices.base import Snapshot
 import uuid
 
 from pyclassic import PyClassic
 from pyclassic.queue import ThreadedQueue, QueueError
 from pyclassic.map import ClassicMap
 
-from shapebuilders.schemas import Block, BuildBusyError, MapResult, UndoResult
+from shapebuilders.schemas import Block, BlockInfo, BuildBusyError, MapResult, PaletteResult, UndoResult
 
 from validator import in_bounds
 from config import SERVER_IP, SERVER_PORT
 
 class ShapeBuilderService(BuildService):
-    def __init__(self):       
+    def __init__(self, palette: BlockPalette):       
+        # load palette
+        self._palette = palette
+
         # create PyClassic object, with auth settings and name
         self._bot = PyClassic(ClientFactory.create_auth(), client_name="buildbot_classic_api")
         # create thread safe queue        
@@ -83,16 +87,29 @@ class ShapeBuilderService(BuildService):
         print(f"[MAP LOADED] {self._bot.map.width} x {self._bot.map.height} x {self._bot.map.length}")
 
 
-    def build(self, blocks: list[Block], build_id: uuid.UUID ) -> tuple[int, int]: 
+    def build(self, blocks: list[Block], build_id: uuid.UUID) -> tuple[int, int]: 
         with self._lock:
 
             kept = [b for b in blocks if in_bounds(b.x, b.y, b.z)]
 
+            invalid = [b.bid for b in kept if not self.is_valid_block(b.bid)]
+
+            if  invalid:
+                raise InvalidBlockError(f"unknow block IDs: {set(invalid)}")
+
+            converted_blocks = []
+            for b in kept:
+                try:
+                    bid: int = int(b.bid)
+                    converted_blocks.append(Block(x=b.x, y=b.y, z=b.z, bid=bid))
+                except ValueError:
+                    print(f"Not a valid block Id {b}")
+
             #take snapshot of map for undo
-            snapshot: Snapshot = self._take_snapshot(kept, build_id)
+            snapshot: Snapshot = self._take_snapshot(converted_blocks, build_id)
 
             try:
-                self._queue.add_queue(kept)
+                self._queue.add_queue(converted_blocks)
             except QueueError as e:
                 # internal log
                 print(f"[BUILD REJECTED] queue busy: {e}")
@@ -101,10 +118,10 @@ class ShapeBuilderService(BuildService):
             self._queue.start_all()            
 
             #update local map
-            self._updatelocalmap(kept)
+            self._updatelocalmap(converted_blocks)
             self._undoservice.add_snapshot(snapshot)
             
-        return len(kept), len(blocks) - len(kept)
+        return len(kept), len(blocks) - len(converted_blocks)
     
     def close(self):
         try:
@@ -118,7 +135,11 @@ class ShapeBuilderService(BuildService):
 
     def _updatelocalmap(self, blocks: list[Block]):        
         for b in blocks:
-            self._localmap[b.x, b.y, b.z] = b.bid        
+            try:
+                bid: int = int()
+                self._localmap[b.x, b.y, b.z] = bid
+            except ValueError:
+                print(f"Not a valid block Id {b}")                    
 
     def _take_snapshot(self, blocks: list[Block], build_id: uuid.UUID) -> Snapshot:
                     
@@ -132,9 +153,8 @@ class ShapeBuilderService(BuildService):
             blocks=map_blocks
             )        
 
-    def _get_block_type(self, block: Block) -> int:
-        block_type = self._localmap[block.x,block.y,block.z]
-        assert isinstance(block_type,int)
+    def _get_block_type(self, block: Block) -> str:
+        block_type = str(self._localmap[block.x,block.y,block.z])
         return(block_type)
 
     def undo(self) -> UndoResult:
@@ -166,3 +186,15 @@ class ShapeBuilderService(BuildService):
             height=self._bot.map.height, 
             length=self._bot.map.length
             )
+
+    @property
+    def palette(self) -> PaletteResult:
+        items = [BlockInfo(id=bid, name=name) for bid, name in sorted(self._palette.as_dict().items())]
+        return PaletteResult(
+            source=self._palette.source,
+            count=len(self._palette),
+            blocks=items
+    )
+
+    def is_valid_block(self, bid: int | str) -> bool:
+        return self._palette.is_valid(bid)

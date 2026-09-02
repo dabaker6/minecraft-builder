@@ -2,7 +2,7 @@ from collections import deque
 from uuid import UUID
 
 from shapebuilders.schemas import Block
-from undoservice.base import Snapshot, UndoService
+from undoservices.base import Snapshot, UndoService
 
 class Undo(UndoService):
     def __init__(self):

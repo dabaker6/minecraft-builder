@@ -7,9 +7,9 @@ from fastapi.responses import JSONResponse
 from factories.build_factory import BuildFactory
 from buildservices.base import BuildService
 from shapebuilders.shapes import BUILDERS
-from shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError, BlockInfo, PaletteResult
+from shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError, PaletteResult
 
-from palettes.palette import InvalidBlockError, load_palette
+from palettes.palette import InvalidBlockError
 
 import uuid
 

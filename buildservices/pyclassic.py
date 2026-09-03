@@ -3,10 +3,9 @@ from threading import Lock
 import threading
 import time
 from buildservices.base import BuildService
-from factories.client_factory import ClientFactory
-from factories.snapshot_factory import UndoFactory
+
 from palettes.palette import BlockPalette, InvalidBlockError
-from undoservices.base import Snapshot
+from undoservices.base import Snapshot, UndoService
 import uuid
 
 from pyclassic import PyClassic
@@ -19,17 +18,17 @@ from validator import in_bounds
 from config import SERVER_IP, SERVER_PORT
 
 class ShapeBuilderService(BuildService):
-    def __init__(self, palette: BlockPalette):       
-        # load palette
+    def __init__(self, client: PyClassic, undoservice: UndoService, palette: BlockPalette):       
+        # constructed palette
         self._palette = palette
+        # constructed client
+        self._bot = client
+        # constructed undoservice
+        self._undoservice = undoservice
 
-        # create PyClassic object, with auth settings and name
-        self._bot = PyClassic(ClientFactory.create_auth(), client_name="buildbot_classic_api")
         # create thread safe queue        
         self._queue = ThreadedQueue(self._bot)        
         self._lock = Lock() # lock
-
-        self._undoservice = UndoFactory.create_service()
         
         # create threading event to signal when map is ready
         self._map_ready = threading.Event()

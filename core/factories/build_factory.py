@@ -1,10 +1,10 @@
-from buildservices.base import BuildService
+from core.buildservices.base import BuildService
 from config import SHAPE_BUILDER
-from buildservices import pyclassic
-from factories.client_factory import ClientFactory
-from palettes.palette import load_palette
+from core.buildservices import pyclassic
+from core.factories.client_factory import ClientFactory
+from core.palettes.palette import load_palette
 from pyclassic import PyClassic
-from factories.snapshot_factory import UndoFactory
+from core.factories.snapshot_factory import UndoFactory
 
 class BuildFactory:
     @staticmethod    

@@ -17,4 +17,4 @@ def block_ids() -> dict:
     """
     The available block Ids and their description
     """
-    return service.palette.as_dict()
+    return service.palette.as_dict()0

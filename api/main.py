@@ -6,12 +6,9 @@ from fastapi.responses import JSONResponse
 
 from core.factories.build_factory import BuildFactory
 from core.buildservices.base import BuildService
-from core.shapebuilders.shapes import BUILDERS
 from core.shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError, PaletteResult
 
 from core.palettes.palette import InvalidBlockError
-
-import uuid
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,7 +36,7 @@ async def invalid_block_error(request: Request, exc: InvalidBlockError):
     return JSONResponse(status_code=400, content={"detail": str(exc), "hint": "please try /blockids to get a valid list of blocks"})
 
 @app.post("/build")
-def build(body: BuildBatch, service: ServiceDep):
+def build(body: BuildBatch, service: ServiceDep) -> BuildResult:
     """
     Build one or more shapes in the Minecraft world.
 
@@ -50,25 +47,7 @@ def build(body: BuildBatch, service: ServiceDep):
     
     If a build looks wrong, call the undo tool to revert it.
     """
-    guid=uuid.uuid4()
-
-    all_blocks = []
-    shapes = []
-    
-    for shape in body.shapes:        
-        blocks = BUILDERS[shape.type](shape)
-        all_blocks.extend(blocks)
-        shapes.append(shape.type)
-
-    kept, dropped = service.build(all_blocks, guid)
-
-    return BuildResult(
-        type=shapes,
-        queued=len(all_blocks), 
-        kept=kept, 
-        dropped=dropped,
-        build_id=guid
-        ) 
+    return service.build(body.shapes)
 
 @app.post("/undo")
 def undo(service: ServiceDep) -> UndoResult:

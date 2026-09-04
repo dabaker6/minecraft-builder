@@ -1,10 +1,10 @@
 from typing import Protocol
 import uuid
-from core.shapebuilders.schemas import Block, MapResult, PaletteResult, UndoResult
+from core.shapebuilders.schemas import MapResult, PaletteResult, ShapeSpec, UndoResult, BuildResult
 
 class BuildService(Protocol):
 
-    def build(self, blocks: list[Block], build_id: uuid.UUID) -> tuple[int, int]:
+    def build(self, shapes: list[ShapeSpec]) -> BuildResult:
         ...
 
     def close(self) -> None:

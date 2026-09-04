@@ -3,7 +3,7 @@ from threading import Lock
 import threading
 import time
 from core.buildservices.base import BuildService
-
+from core.shapebuilders.shapes import BUILDERS
 from core.palettes.palette import BlockPalette, InvalidBlockError
 from core.undoservices.base import Snapshot, UndoService
 import uuid
@@ -12,7 +12,7 @@ from pyclassic import PyClassic
 from pyclassic.queue import ThreadedQueue, QueueError
 from pyclassic.map import ClassicMap
 
-from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, MapResult, PaletteResult, UndoResult
+from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, BuildResult, MapResult, PaletteResult, ShapeSpec, UndoResult
 
 from api.validator import in_bounds
 from config import SERVER_IP, SERVER_PORT
@@ -86,7 +86,17 @@ class ShapeBuilderService(BuildService):
         print(f"[MAP LOADED] {self._bot.map.width} x {self._bot.map.height} x {self._bot.map.length}")
 
 
-    def build(self, blocks: list[Block], build_id: uuid.UUID) -> tuple[int, int]: 
+    def build(self, shapes: list[ShapeSpec]) -> BuildResult: 
+
+        build_id = uuid.uuid4()
+        blocks = []
+        shape_types = []
+        
+        for shape in shapes:        
+            blocks_list = BUILDERS[shape.type](shape)
+            blocks.extend(blocks_list)
+            shape_types.append(shape.type)
+
         with self._lock:
 
             kept = [b for b in blocks if in_bounds(b.x, b.y, b.z)]
@@ -119,8 +129,12 @@ class ShapeBuilderService(BuildService):
             #update local map
             self._updatelocalmap(converted_blocks)
             self._undoservice.add_snapshot(snapshot)
-            
-        return len(kept), len(blocks) - len(converted_blocks)
+        return BuildResult(
+            type=shape_types, 
+            queued=len(blocks),
+            dropped=len(blocks) - len(converted_blocks),
+            kept=len(kept),
+            build_id=build_id)        
     
     def close(self):
         try:

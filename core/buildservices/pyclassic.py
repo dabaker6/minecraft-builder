@@ -157,7 +157,9 @@ class ShapeBuilderService(BuildService):
     def _take_snapshot(self, blocks: list[Block], build_id: uuid.UUID) -> Snapshot:
                     
         map_blocks = []
-                
+        '''
+        Need to convert blocks here too
+        '''
         [map_blocks.append(Block(x=b.x,y=b.y,z=b.z, bid=self._get_block_type(b))) for b in blocks]
         
         return Snapshot(
@@ -166,8 +168,9 @@ class ShapeBuilderService(BuildService):
             blocks=map_blocks
             )        
 
-    def _get_block_type(self, block: Block) -> str:
-        block_type = str(self._localmap[block.x,block.y,block.z])
+    def _get_block_type(self, block: Block) -> int:
+        block_type = self._localmap[block.x,block.y,block.z]
+        assert isinstance(block_type, int)
         return(block_type)
 
     def undo(self) -> UndoResult:

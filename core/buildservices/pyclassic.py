@@ -2,19 +2,19 @@ import asyncio
 from threading import Lock
 import threading
 import time
-from buildservices.base import BuildService
+from core.buildservices.base import BuildService
 
-from palettes.palette import BlockPalette, InvalidBlockError
-from undoservices.base import Snapshot, UndoService
+from core.palettes.palette import BlockPalette, InvalidBlockError
+from core.undoservices.base import Snapshot, UndoService
 import uuid
 
 from pyclassic import PyClassic
 from pyclassic.queue import ThreadedQueue, QueueError
 from pyclassic.map import ClassicMap
 
-from shapebuilders.schemas import Block, BlockInfo, BuildBusyError, MapResult, PaletteResult, UndoResult
+from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, MapResult, PaletteResult, UndoResult
 
-from validator import in_bounds
+from api.validator import in_bounds
 from config import SERVER_IP, SERVER_PORT
 
 class ShapeBuilderService(BuildService):

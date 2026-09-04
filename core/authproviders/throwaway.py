@@ -1,5 +1,5 @@
 
-from authproviders.base import AuthProvider
+from core.authproviders.base import AuthProvider
 from pyclassic.extra import throwaway
 from pyclassic.client import Client
 

@@ -1,5 +1,5 @@
 # Vectors to represent allignment
-from shapebuilders.schemas import Block
+from core.shapebuilders.schemas import Block
 
 
 _VECTORS = {

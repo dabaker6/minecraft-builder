@@ -4,12 +4,12 @@ from typing import Annotated
 from fastapi import FastAPI, Depends, Request
 from fastapi.responses import JSONResponse
 
-from factories.build_factory import BuildFactory
-from buildservices.base import BuildService
-from shapebuilders.shapes import BUILDERS
-from shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError, PaletteResult
+from core.factories.build_factory import BuildFactory
+from core.buildservices.base import BuildService
+from core.shapebuilders.shapes import BUILDERS
+from core.shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError, PaletteResult
 
-from palettes.palette import InvalidBlockError
+from core.palettes.palette import InvalidBlockError
 
 import uuid
 

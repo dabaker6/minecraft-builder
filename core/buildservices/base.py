@@ -1,6 +1,6 @@
 from typing import Protocol
 import uuid
-from shapebuilders.schemas import Block, MapResult, PaletteResult, UndoResult
+from core.shapebuilders.schemas import Block, MapResult, PaletteResult, UndoResult
 
 class BuildService(Protocol):
 

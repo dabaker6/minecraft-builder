@@ -125,7 +125,7 @@ class BuildBatch(BaseModel):
 
 # ------ responses --------
 class BuildResult(BaseModel):
-    type: list[str] = Field(description="THe shape types that were built, in order.")
+    shape_types: list[str] = Field(description="THe shape types that were built, in order.")
     queued: int = Field(description="Total blocks queued accepted for placement.")
     dropped: int = Field(description="Blocks not placed due to being of of the map bounds.")
     kept: int = Field(description="Blocks placed after removing blocks outside of the map bounds.")

@@ -11,3 +11,19 @@ To implement:
 - TraceIds
 - MCP
 - add valid bid check
+
+Importable package
+
+run:
+```bash
+python -c "import core; print(core.__file__)"
+```
+If none then add to pyproject.toml:
+```ini
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["api", "core", "mcp_server"]
+```

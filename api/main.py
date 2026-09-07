@@ -46,7 +46,10 @@ def build(body: BuildBatch, service: ServiceDep) -> BuildResult:
     The size of the map can be obtained through the map tool.
     
     If a build looks wrong, call the undo tool to revert it.
-    """
+
+    Returns a unique ID, a list of the names of the shapes placed, the initial number of blocks queued (queued), 
+    the number of blocks dropped for being out of bounds (dropped) and the final number placed (kept)
+    """    
     return service.build(body.shapes)
 
 @app.post("/undo")
@@ -56,13 +59,16 @@ def undo(service: ServiceDep) -> UndoResult:
 
     When a build is requested all shapes for that build are placed on an undo stack. 
     If no builds are present an http 400 bad request is returned
+
+    Returns the unique id of the build being reversed and a count of the blocks restored
     '''
     return service.undo()    
 
 @app.get("/map")
 def map(service: ServiceDep) -> MapResult:
-    '''
-    Returns the size of the map in x, y and z planes
+    '''    
+    Returns the size of the map in x, y and z planes as width, height and length.
+    Blocks must be places within these bounds
     '''
     return service.map_size
 

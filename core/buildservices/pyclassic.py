@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from threading import Lock
 import threading
 import time
@@ -13,9 +14,13 @@ from pyclassic.queue import ThreadedQueue, QueueError
 from pyclassic.map import ClassicMap
 
 from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, BuildResult, MapResult, PaletteResult, ShapeSpec, UndoResult
+from core.logging import setup_logging
 
 from api.validator import in_bounds
 from config import SERVER_IP, SERVER_PORT
+
+setup_logging()
+logger = logging.getLogger("minecraft-buildbot-pyclassic")
 
 class ShapeBuilderService(BuildService):
     def __init__(self, client: PyClassic, undoservice: UndoService, palette: BlockPalette):       
@@ -65,7 +70,7 @@ class ShapeBuilderService(BuildService):
             self._bot.run(ip=SERVER_IP, port=SERVER_PORT)
         except Exception as e:
             # A daemon thread that raises vanishes silently — surface it.
-            print(f"[LISTENER THREAD DIED] {e!r}")    
+            logger.error(f"[LISTENER THREAD DIED] {e!r}")    
 
     def _wait_for_map(self, timeout=20):
         # event waits for map to load
@@ -83,7 +88,7 @@ class ShapeBuilderService(BuildService):
             raise RuntimeError(
                 "LEVEL_FINALISE emitted but map not loaded"
             )
-        print(f"[MAP LOADED] {self._bot.map.width} x {self._bot.map.height} x {self._bot.map.length}")
+        logger.info(f"[MAP LOADED] {self._bot.map.width} x {self._bot.map.height} x {self._bot.map.length}")
 
 
     def build(self, shapes: list[ShapeSpec]) -> BuildResult: 
@@ -112,7 +117,7 @@ class ShapeBuilderService(BuildService):
                     bid: int = int(b.bid)
                     converted_blocks.append(Block(x=b.x, y=b.y, z=b.z, bid=bid))
                 except ValueError:
-                    print(f"Not a valid block Id {b}")
+                    logger.error(f"Not a valid block Id {b}")
 
             #take snapshot of map for undo
             snapshot: Snapshot = self._take_snapshot(converted_blocks, build_id)
@@ -121,7 +126,7 @@ class ShapeBuilderService(BuildService):
                 self._queue.add_queue(converted_blocks)
             except QueueError as e:
                 # internal log
-                print(f"[BUILD REJECTED] queue busy: {e}")
+                logger.error(f"[BUILD REJECTED] queue busy: {e}")
 
                 raise BuildBusyError("A build is already in progress; try again shortly")
             self._queue.start_all()            
@@ -130,7 +135,7 @@ class ShapeBuilderService(BuildService):
             self._updatelocalmap(converted_blocks)
             self._undoservice.add_snapshot(snapshot)
         return BuildResult(
-            type=shape_types, 
+            shape_types=shape_types, 
             queued=len(blocks),
             dropped=len(blocks) - len(converted_blocks),
             kept=len(kept),
@@ -140,11 +145,11 @@ class ShapeBuilderService(BuildService):
         try:
             self._queue.stop()
         except Exception as e:
-            print(f"Error occurred while stopping queue: {e}")
+            logger.error(f"Error occurred while stopping queue: {e}")
         try:
             self._bot.disconnect()
         except Exception as e:
-            print(f"Error occurred while disconnecting bot: {e}")
+            logger.error(f"Error occurred while disconnecting bot: {e}")
 
     def _updatelocalmap(self, blocks: list[Block]):        
         for b in blocks:
@@ -152,7 +157,7 @@ class ShapeBuilderService(BuildService):
                 bid: int = int()
                 self._localmap[b.x, b.y, b.z] = bid
             except ValueError:
-                print(f"Not a valid block Id {b}")                    
+                logger.error(f"Not a valid block Id {b}")                    
 
     def _take_snapshot(self, blocks: list[Block], build_id: uuid.UUID) -> Snapshot:
                     
@@ -185,7 +190,7 @@ class ShapeBuilderService(BuildService):
                     self._queue.add_queue(coords)
                 except QueueError as e:
                     # internal log
-                    print(f"[BUILD REJECTED] queue busy: {e}")            
+                    logger.error(f"[BUILD REJECTED] queue busy: {e}")            
 
                 self._updatelocalmap(coords)
                 self._queue.start_all()

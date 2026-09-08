@@ -30,29 +30,41 @@ class ShapeBuilderService(BuildService):
         self._bot = client
         # constructed undoservice
         self._undoservice = undoservice
+        # flag for lazy loading of connection and map
+        self._ready = False
 
         # create thread safe queue        
         self._queue = ThreadedQueue(self._bot)        
         self._lock = Lock() # lock
-        
-        # create threading event to signal when map is ready
-        self._map_ready = threading.Event()
-        # 
-        self._register_map_ready_hook()
+        self._connect_lock = Lock() # lock for connection and map loading
 
-        # start listener
-        self._listener = threading.Thread(
-            target=self._run_listener,
-            name="pyclassic-listener",
-            daemon=True
-        )
+    def ensure_connected(self):
+        if self._ready:
+            return
+        else:
+            with self._connect_lock:
+                if self._ready:
+                    return
+                else:
+                    # create threading event to signal when map is ready
+                    self._map_ready = threading.Event()
+                    # 
+                    self._register_map_ready_hook()
 
-        self._listener.start()
+                    # start listener
+                    self._listener = threading.Thread(
+                        target=self._run_listener,
+                        name="pyclassic-listener",
+                        daemon=True
+                    )
 
-        self._wait_for_map(timeout=20)
+                    self._listener.start()
 
-        # create service local map
-        self._localmap: ClassicMap = self._bot.map.copy()
+                    self._wait_for_map(timeout=20)
+
+                    # create service local map
+                    self._localmap: ClassicMap = self._bot.map.copy()
+                    self._ready = True
     
     def _register_map_ready_hook(self):
         # has to be wrapped in function to access self
@@ -92,7 +104,8 @@ class ShapeBuilderService(BuildService):
 
 
     def build(self, shapes: list[ShapeSpec]) -> BuildResult: 
-
+        # ensure connection and map are ready
+        self.ensure_connected()
         build_id = uuid.uuid4()
         blocks = []
         shape_types = []

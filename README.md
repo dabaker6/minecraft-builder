@@ -14,6 +14,16 @@ To implement:
 
 Importable package
 
+# Setup
+```bash
+uv add fastapi uvicorn [standard]
+uv add fastmcp
+```
+Pyclassic isn't on uv so need 
+```bash
+uv add "git+https://github.com/pyclassic/pyclassic.git" 
+```
+
 run:
 ```bash
 python -c "import core; print(core.__file__)"
@@ -26,6 +36,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["api", "core", "mcp_server"]
+```
+run
+```bash
+uv pip install -e .
 ```
 
 Check:

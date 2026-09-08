@@ -7,4 +7,3 @@ def setup_logging(level=logging.INFO):
         stream=sys.stderr,        # everything to stderr
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
-

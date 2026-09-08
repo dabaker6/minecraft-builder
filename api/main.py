@@ -13,6 +13,7 @@ from core.palettes.palette import InvalidBlockError
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.service = BuildFactory.create_shape_builder()
+    app.state.service.ensure_connected()  # Ensure the service is connected and ready
     yield
     app.state.service.close()
 

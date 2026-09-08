@@ -4,6 +4,9 @@ from core.shapebuilders.schemas import MapResult, PaletteResult, ShapeSpec, Undo
 
 class BuildService(Protocol):
 
+    def ensure_connected(self) -> None:
+        ...
+        
     def build(self, shapes: list[ShapeSpec]) -> BuildResult:
         ...
 

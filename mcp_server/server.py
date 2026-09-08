@@ -2,6 +2,7 @@ from typing import List
 import logging
 
 from fastmcp import FastMCP
+from core.buildservices.base import BuildService
 from core.factories.build_factory import BuildFactory
 from core.shapebuilders.schemas import BuildResult, MapResult, PaletteResult, ShapeSpec, UndoResult
 
@@ -12,7 +13,7 @@ logger = logging.getLogger("minecraft-buildbot-mcp")
 
 mcp = FastMCP("Minecraft Buildbot")
 
-def build_service() -> BuildFactory:
+def build_service() -> BuildService:
     """
     Create a shape builder service based on the configuration in the environment variables.
     """
@@ -20,7 +21,6 @@ def build_service() -> BuildFactory:
     service = BuildFactory.create_shape_builder()
     logger.info("Shape builder service created successfully")
     return service
-
 
 @mcp.tool()
 def build(shapes: List[ShapeSpec]) -> BuildResult:
@@ -95,7 +95,7 @@ def get_blockids() -> PaletteResult:
 if __name__ == "__main__":
     logger.info("Starting Minecraft Buildbot MCP server")
     try:
-        service = build_service()       
+        service: BuildService = build_service()       
         mcp.run()
     except Exception:
         logger.error(f"MCP server failed to start")

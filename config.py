@@ -12,3 +12,4 @@ USERNAME = os.getenv("USERNAME", "buildbot")
 SNAPSHOT_STORE = os.getenv("SNAPSHOT_STORE", "in_memory")
 BLOCK_PALETTE = os.getenv("BLOCK_PALETTE", "classic")
 PALETTE_DIR = Path(os.getenv("PALETTE_DIR", Path(__file__).parent / "core/palettes"))
+KEEP_ALIVE_INTERVAL = int(os.getenv("KEEP_ALIVE_INTERVAL", 600))  # in seconds

@@ -14,3 +14,6 @@ class Undo(UndoService):
     def get_snapshot(self) -> Snapshot | None:
         if self._stack:
             return self._stack.pop()
+
+    def clear_snapshots(self) -> None:
+        self._stack.clear()

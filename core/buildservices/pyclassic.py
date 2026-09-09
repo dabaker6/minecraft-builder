@@ -17,7 +17,7 @@ from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, BuildRe
 from core.logging import setup_logging
 
 from api.validator import in_bounds
-from config import SERVER_IP, SERVER_PORT
+from config import SERVER_IP, SERVER_PORT, KEEP_ALIVE_INTERVAL, USERNAME
 
 setup_logging()
 logger = logging.getLogger("minecraft-buildbot-pyclassic")
@@ -32,40 +32,81 @@ class ShapeBuilderService(BuildService):
         self._undoservice = undoservice
         # flag for lazy loading of connection and map
         self._ready = False
-
+        
         # create thread safe queue        
         self._queue = ThreadedQueue(self._bot)        
         self._lock = Lock() # lock
         self._connect_lock = Lock() # lock for connection and map loading
+        
+    def _is_alive(self) -> bool:
+        if not self._ready or self._bot is None:
+            return False
 
-    def ensure_connected(self):
-        if self._ready:
-            return
+        if self._queue.is_active():        # a build is draining — skip, it's keeping the connection busy anyway
+            return True
+         
+        try:
+            self._liveness_check()
+            return True
+        except Exception as e:
+            logger.warning(f"Connection check failed: {e}")
+            return False
+
+    def _liveness_check(self):
+        players = self._bot.players.values()
+        player = next((p for p in players if p.name == USERNAME), None)
+
+        if player is not None:
+            self._bot.client.move(player.x // 32, player.y // 32 + 2, player.z // 32)  # move to current position to trigger a server response
+            logger.info("Keepalive check sent successfully")
         else:
-            with self._connect_lock:
-                if self._ready:
-                    return
-                else:
-                    # create threading event to signal when map is ready
-                    self._map_ready = threading.Event()
-                    # 
-                    self._register_map_ready_hook()
+            logger.warning(f"Player {USERNAME} not found in player list during liveness check.")
+            self._bot.client.message("I am still here!")  # send a message to trigger a server response
 
-                    # start listener
-                    self._listener = threading.Thread(
-                        target=self._run_listener,
-                        name="pyclassic-listener",
-                        daemon=True
-                    )
+    def ensure_connected(self):        
+        with self._connect_lock:
+            is_alive = self._is_alive()
+            if self._ready and is_alive:
+                return
 
-                    self._listener.start()
+            if self._ready and not is_alive:
+                logger.warning("Connection lost, attempting to reconnect")
+                self._disconnect()
 
-                    self._wait_for_map(timeout=20)
+            self._connect()
 
-                    # create service local map
-                    self._localmap: ClassicMap = self._bot.map.copy()
-                    self._ready = True
-    
+    def _connect(self):
+        # create threading event to signal when map is ready
+        self._map_ready = threading.Event()
+        # 
+        self._register_map_ready_hook()
+
+        # start listener
+        self._listener = threading.Thread(
+            target=self._run_listener,
+            name="pyclassic-listener",
+            daemon=True
+        )
+
+        self._listener.start()
+
+        self._wait_for_map(timeout=20)
+
+        # create service local map
+        self._localmap: ClassicMap = self._bot.map.copy()
+        self._ready = True
+        
+
+    def _disconnect(self):
+        self._ready = False
+        try:
+            self._bot.disconnect()
+            # listener thread is daemon, so it will exit when main thread exits (when recv() fails on the closed socket)
+            # keepalive thread is daemon, so it will exit when main thread exits (when self._ready is False)
+        except Exception as e:
+            logger.error(f"Error occurred while disconnecting bot: {e}")
+        self._undoservice.clear_snapshots()  # Clear snapshots on disconnect to avoid stale data
+
     def _register_map_ready_hook(self):
         # has to be wrapped in function to access self
         @self._bot.event
@@ -82,7 +123,7 @@ class ShapeBuilderService(BuildService):
             self._bot.run(ip=SERVER_IP, port=SERVER_PORT)
         except Exception as e:
             # A daemon thread that raises vanishes silently — surface it.
-            logger.error(f"[LISTENER THREAD DIED] {e!r}")    
+            logger.error(f"Listener thread died: {e!r}")    
 
     def _wait_for_map(self, timeout=20):
         # event waits for map to load
@@ -100,8 +141,7 @@ class ShapeBuilderService(BuildService):
             raise RuntimeError(
                 "LEVEL_FINALISE emitted but map not loaded"
             )
-        logger.info(f"[MAP LOADED] {self._bot.map.width} x {self._bot.map.height} x {self._bot.map.length}")
-
+        logger.info(f"Map loaded {self._bot.map.width} x {self._bot.map.height} x {self._bot.map.length}")
 
     def build(self, shapes: list[ShapeSpec]) -> BuildResult: 
         # ensure connection and map are ready
@@ -122,7 +162,7 @@ class ShapeBuilderService(BuildService):
             invalid = [b.bid for b in kept if not self.is_valid_block(b.bid)]
 
             if  invalid:
-                raise InvalidBlockError(f"unknow block IDs: {set(invalid)}")
+                raise InvalidBlockError(f"Unknown block IDs: {set(invalid)}")
 
             converted_blocks = []
             for b in kept:
@@ -139,7 +179,7 @@ class ShapeBuilderService(BuildService):
                 self._queue.add_queue(converted_blocks)
             except QueueError as e:
                 # internal log
-                logger.error(f"[BUILD REJECTED] queue busy: {e}")
+                logger.error(f"Build rejected queue busy: {e}")
 
                 raise BuildBusyError("A build is already in progress; try again shortly")
             self._queue.start_all()            
@@ -160,14 +200,14 @@ class ShapeBuilderService(BuildService):
         except Exception as e:
             logger.error(f"Error occurred while stopping queue: {e}")
         try:
-            self._bot.disconnect()
+            self._disconnect()
         except Exception as e:
             logger.error(f"Error occurred while disconnecting bot: {e}")
 
     def _updatelocalmap(self, blocks: list[Block]):        
         for b in blocks:
             try:
-                bid: int = int()
+                bid: int = int(b.bid)
                 self._localmap[b.x, b.y, b.z] = bid
             except ValueError:
                 logger.error(f"Not a valid block Id {b}")                    
@@ -192,6 +232,8 @@ class ShapeBuilderService(BuildService):
         return(block_type)
 
     def undo(self) -> UndoResult:
+        # ensure connection and map are ready
+        self.ensure_connected()
         lastSnapshot: Snapshot | None = self._undoservice.get_snapshot()
 
         if not lastSnapshot:
@@ -203,8 +245,8 @@ class ShapeBuilderService(BuildService):
                     self._queue.add_queue(coords)
                 except QueueError as e:
                     # internal log
-                    logger.error(f"[BUILD REJECTED] queue busy: {e}")            
-
+                    logger.error(f"Build rejected queue busy: {e}")            
+                    raise BuildBusyError("A build is already in progress; try again shortly")
                 self._updatelocalmap(coords)
                 self._queue.start_all()
 
@@ -215,6 +257,7 @@ class ShapeBuilderService(BuildService):
 
     @property
     def map_size(self) -> MapResult:
+        self.ensure_connected() # ensure map is loaded and ready
         return MapResult(
             width=self._bot.map.width, 
             height=self._bot.map.height, 
@@ -223,6 +266,7 @@ class ShapeBuilderService(BuildService):
 
     @property
     def palette(self) -> PaletteResult:
+        self.ensure_connected()
         items = [BlockInfo(id=bid, name=name) for bid, name in sorted(self._palette.as_dict().items())]
         return PaletteResult(
             source=self._palette.source,

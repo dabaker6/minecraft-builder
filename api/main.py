@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from core.factories.build_factory import BuildFactory
 from core.buildservices.base import BuildService
-from core.shapebuilders.schemas import BuildBatch, BuildResult, MapResult, UndoResult, BuildBusyError, PaletteResult
+from core.shapebuilders.schemas import BuildBatch, BuildInteruptedError, BuildResult, MapResult, ServerUnavailableError, UndoResult, BuildBusyError, PaletteResult
 
 from core.palettes.palette import InvalidBlockError
 
@@ -27,6 +27,14 @@ ServiceDep = Annotated[BuildService, Depends(get_service)]
 @app.exception_handler(BuildBusyError)
 async def build_busy_handler(request: Request, exc: BuildBusyError):
     return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+@app.exception_handler(BuildInteruptedError)
+async def build_interrupted_handler(request: Request, exc: BuildInteruptedError):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+@app.exception_handler(ServerUnavailableError)
+async def server_unavailable_handler(request: Request, exc: ServerUnavailableError):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 @app.exception_handler(IndexError)
 async def no_undo_history_handler(request: Request, exc: IndexError):

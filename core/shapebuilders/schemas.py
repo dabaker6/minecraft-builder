@@ -8,6 +8,12 @@ from typing import Union, Literal, Annotated
 class BuildBusyError(Exception):
     pass
 
+class BuildInteruptedError(Exception):
+    pass
+
+class ServerUnavailableError(Exception):
+    pass
+
 # ------ geometry --------
 
 class Orientation(str, Enum):

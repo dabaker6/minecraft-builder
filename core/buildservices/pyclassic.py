@@ -13,7 +13,7 @@ from pyclassic import PyClassic
 from pyclassic.queue import ThreadedQueue, QueueError
 from pyclassic.map import ClassicMap
 
-from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, BuildResult, MapResult, PaletteResult, ShapeSpec, UndoResult
+from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, BuildInteruptedError, BuildResult, MapResult, PaletteResult, ServerUnavailableError, ShapeSpec, UndoResult
 from core.logging import setup_logging
 
 from api.validator import in_bounds
@@ -42,9 +42,12 @@ class ShapeBuilderService(BuildService):
         if not self._ready or self._bot is None:
             return False
 
-        if self._queue.is_active():        # a build is draining — skip, it's keeping the connection busy anyway
-            return True
+        #if self._queue.is_active():        # a build is draining — skip, it's keeping the connection busy anyway
+        #    return True
          
+        if self._queue.thread and self._queue.thread.is_alive():  # queue thread is alive, so the connection is likely alive
+            return True
+        
         try:
             self._liveness_check()
             return True
@@ -71,44 +74,68 @@ class ShapeBuilderService(BuildService):
 
             if self._ready and not is_alive:
                 logger.warning("Connection lost, attempting to reconnect")
-                self._disconnect()
+                self._teardown()
 
             self._connect()
 
     def _connect(self):
         # create threading event to signal when map is ready
-        self._map_ready = threading.Event()
-        # 
-        self._register_map_ready_hook()
+        try:
+            self._map_ready = threading.Event()
+            self._register_map_ready_hook()
 
-        # start listener
-        self._listener = threading.Thread(
-            target=self._run_listener,
-            name="pyclassic-listener",
-            daemon=True
-        )
+            # start listener
+            self._listener = threading.Thread(
+                target=self._run_listener,
+                name="pyclassic-listener",
+                daemon=True
+            )
 
-        self._listener.start()
+            self._listener.start()
 
-        self._wait_for_map(timeout=20)
+            self._wait_for_map(timeout=20)
 
-        # create service local map
-        self._localmap: ClassicMap = self._bot.map.copy()
-        self._ready = True
-        
+            # create service local map
+            self._localmap: ClassicMap = self._bot.map.copy()
+            self._ready = True
+
+        except Exception as e:
+            logger.error(f"Error occurred during connection: {e}")
+            self._disconnect()
+            self._ready = False
+            raise ServerUnavailableError(f"Failed to connect and load map") from e
+
+    def _teardown(self):
+        '''
+        Runs disconnect and clears snapshots to avoid stale data.
+        '''
+        self._disconnect()
+        self._undoservice.clear_snapshots() 
 
     def _disconnect(self):
+        '''
+        Disconnects the bot and stops the queue. C
+        Queue is stopped to ensure a clean shutdown and in the case a build failed mid-build it avoids a dead thread. 
+        The listener thread is a daemon, so it will exit when the main thread exits (when recv() fails on the closed socket).
+        '''
         self._ready = False
+        try:
+            self._queue.stop()
+        except Exception as e:
+            logger.error(f"Error occurred while stopping queue: {e}")
+
         try:
             self._bot.disconnect()
             # listener thread is daemon, so it will exit when main thread exits (when recv() fails on the closed socket)
-            # keepalive thread is daemon, so it will exit when main thread exits (when self._ready is False)
+            
         except Exception as e:
             logger.error(f"Error occurred while disconnecting bot: {e}")
-        self._undoservice.clear_snapshots()  # Clear snapshots on disconnect to avoid stale data
+
 
     def _register_map_ready_hook(self):
-        # has to be wrapped in function to access self
+        '''
+        Has to be wrapped in function to access self
+        '''
         @self._bot.event
         async def on_recv(info, _packet): # _packet is not used intentionally
             if info.name == "LEVEL_FINALIZE":
@@ -125,7 +152,7 @@ class ShapeBuilderService(BuildService):
             # A daemon thread that raises vanishes silently — surface it.
             logger.error(f"Listener thread died: {e!r}")    
 
-    def _wait_for_map(self, timeout=20):
+    def _wait_for_map(self, timeout=5):
         # event waits for map to load
         if not self._map_ready.wait(timeout=timeout):
             raise RuntimeError(
@@ -142,6 +169,45 @@ class ShapeBuilderService(BuildService):
                 "LEVEL_FINALISE emitted but map not loaded"
             )
         logger.info(f"Map loaded {self._bot.map.width} x {self._bot.map.height} x {self._bot.map.length}")
+
+    def _updatelocalmap(self, blocks: list[Block]):        
+        for b in blocks:
+            try:
+                bid: int = int(b.bid)
+                self._localmap[b.x, b.y, b.z] = bid
+            except ValueError:
+                logger.error(f"Not a valid block Id {b}")                    
+
+    def _take_snapshot(self, blocks: list[Block], build_id: uuid.UUID) -> Snapshot:
+                    
+        map_blocks = []
+        '''
+        Need to convert blocks here too
+        '''
+        [map_blocks.append(Block(x=b.x,y=b.y,z=b.z, bid=self._get_block_type(b))) for b in blocks]
+        
+        return Snapshot(
+            guid=build_id,
+            description="",
+            blocks=map_blocks
+            )        
+
+    def _get_block_type(self, block: Block) -> int:
+        block_type = self._localmap[block.x,block.y,block.z]
+        assert isinstance(block_type, int)
+        return(block_type)
+
+    def _add_to_queue(self, converted_blocks: list[Block]):
+        try:
+            self._queue.add_queue(converted_blocks)
+        except QueueError as e:                
+            
+            if self._queue.thread and not self._queue.thread.is_alive():
+                logger.error("Queue thread is not alive (connection lost midbuild); build failed")
+                raise BuildInteruptedError("Failed to add build to queue; Please retry to reconnect and rebuild.")
+            else:
+                logger.error(f"Build rejected queue busy: {e}")
+                raise BuildBusyError("A build is already in progress; pleases try again shortly")
 
     def build(self, shapes: list[ShapeSpec]) -> BuildResult: 
         # ensure connection and map are ready
@@ -175,13 +241,9 @@ class ShapeBuilderService(BuildService):
             #take snapshot of map for undo
             snapshot: Snapshot = self._take_snapshot(converted_blocks, build_id)
 
-            try:
-                self._queue.add_queue(converted_blocks)
-            except QueueError as e:
-                # internal log
-                logger.error(f"Build rejected queue busy: {e}")
-
-                raise BuildBusyError("A build is already in progress; try again shortly")
+        
+            self._add_to_queue(converted_blocks)
+            
             self._queue.start_all()            
 
             #update local map
@@ -200,36 +262,9 @@ class ShapeBuilderService(BuildService):
         except Exception as e:
             logger.error(f"Error occurred while stopping queue: {e}")
         try:
-            self._disconnect()
+            self._teardown()
         except Exception as e:
             logger.error(f"Error occurred while disconnecting bot: {e}")
-
-    def _updatelocalmap(self, blocks: list[Block]):        
-        for b in blocks:
-            try:
-                bid: int = int(b.bid)
-                self._localmap[b.x, b.y, b.z] = bid
-            except ValueError:
-                logger.error(f"Not a valid block Id {b}")                    
-
-    def _take_snapshot(self, blocks: list[Block], build_id: uuid.UUID) -> Snapshot:
-                    
-        map_blocks = []
-        '''
-        Need to convert blocks here too
-        '''
-        [map_blocks.append(Block(x=b.x,y=b.y,z=b.z, bid=self._get_block_type(b))) for b in blocks]
-        
-        return Snapshot(
-            guid=build_id,
-            description="",
-            blocks=map_blocks
-            )        
-
-    def _get_block_type(self, block: Block) -> int:
-        block_type = self._localmap[block.x,block.y,block.z]
-        assert isinstance(block_type, int)
-        return(block_type)
 
     def undo(self) -> UndoResult:
         # ensure connection and map are ready
@@ -241,14 +276,9 @@ class ShapeBuilderService(BuildService):
         else:
             coords = [Block(x=b.x, y=b.y, z=b.z, bid=b.bid) for b in lastSnapshot.blocks]
             with self._lock:
-                try:    
-                    self._queue.add_queue(coords)
-                except QueueError as e:
-                    # internal log
-                    logger.error(f"Build rejected queue busy: {e}")            
-                    raise BuildBusyError("A build is already in progress; try again shortly")
-                self._updatelocalmap(coords)
+                self._add_to_queue(coords)            
                 self._queue.start_all()
+                self._updatelocalmap(coords)
 
         return UndoResult(
             build_id=lastSnapshot.guid, 

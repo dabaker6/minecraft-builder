@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Protocol
 import uuid
-from core.shapebuilders.schemas import Block
+from core.shapes.schemas import Block
 
 @dataclass
 class Snapshot:

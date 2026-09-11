@@ -52,7 +52,7 @@ class WallBody(BaseModel):
     type: Literal["wall"]
     length: int = Field(gt=0, description="Length of the wall in horizontal plane")
     height: int = Field(gt=0, description="Height of the wall in the vertical plane")
-    orientation: Orientation = Field(description="Compass direction the shape faces: north (-z), south (+z), east (+x), west (-x)")
+    orientation: Orientation = Field(description="A direction vector, where north (-z), south (+z), east (+x), west (-x), this determines the direction the shape is built in from the origin")
     ox: int = Field(ge=0, description="X coordinate for the origin of the wall")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the wall")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the wall")
@@ -83,7 +83,7 @@ class TriangleBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["triangle"]
     size: int = Field(ge=3, description="Length of the base of the triangle")
-    orientation: Orientation = Field(description="Compass direction the shape faces: north (-z), south (+z), east (+x), west (-x)")
+    orientation: Orientation = Field(description="A direction vector, where north (-z), south (+z), east (+x), west (-x), this determines the direction the shape is built in from the origin")
     ox: int = Field(ge=0, description="X coordinate for the origin of the triangle")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the triangle")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the triangle")
@@ -94,7 +94,7 @@ class SlopeBody(BaseModel):
     type: Literal["slope"]
     length: int = Field(gt=0, description="Length of the slope in horizontal plane")
     height: int = Field(gt=0, description="Height of the slope in the vertical plane")
-    orientation: Orientation = Field(description="Compass direction the shape faces: north (-z), south (+z), east (+x), west (-x)")
+    orientation: Orientation = Field(description="A direction vector, where north (-z), south (+z), east (+x), west (-x), this determines the direction the shape is built in from the origin")
     ox: int = Field(ge=0, description="X coordinate for the origin of the slope")
     oy: int = Field(ge=0, description="Y coordinate for the origin of the slope")
     oz: int = Field(ge=0, description="Z coordinate for the origin of the slope")
@@ -150,3 +150,8 @@ class PaletteResult(BaseModel):
     source: str = Field(description="Which palette file is being used")
     count: int = Field(description="Number of available block types")
     blocks: list[BlockInfo] = Field(description="All block types available to build with as id/name pairs")
+
+class ShapeCatalogueResult(BaseModel):
+    source: str = Field(description="Which shape catalogue is being used")
+    count: int = Field(description="Number of available shapes to build with")
+    catalogue: dict[str, dict[str,str]] = Field(description="All shapes available to use to build, with a description, their parameters and notes on usage")

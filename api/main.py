@@ -6,9 +6,10 @@ from fastapi.responses import JSONResponse
 
 from core.factories.build_factory import BuildFactory
 from core.buildservices.base import BuildService
-from core.shapebuilders.schemas import BuildBatch, BuildInteruptedError, BuildResult, MapResult, ServerUnavailableError, UndoResult, BuildBusyError, PaletteResult
+from core.shapes.schemas import BuildBatch, BuildInteruptedError, BuildResult, MapResult, ServerUnavailableError, ShapeCatalogueResult, UndoResult, BuildBusyError, PaletteResult
 
-from core.palettes.palette import InvalidBlockError
+from core.palettes.palette import InvalidBlockError, PaletteError
+from core.shapes.shapecatalogue import ShapeCatalogueError
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +44,14 @@ async def no_undo_history_handler(request: Request, exc: IndexError):
 @app.exception_handler(InvalidBlockError)
 async def invalid_block_error(request: Request, exc: InvalidBlockError):
     return JSONResponse(status_code=400, content={"detail": str(exc), "hint": "please try /blockids to get a valid list of blocks"})
+
+@app.exception_handler(PaletteError)
+async def palette_error(request: Request, exc: PaletteError):
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+@app.exception_handler(ShapeCatalogueError)
+async def shape_description_error(request: Request, exc: ShapeCatalogueError):
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 @app.post("/build")
 def build(body: BuildBatch, service: ServiceDep) -> BuildResult:
@@ -91,6 +100,16 @@ def blockids(service: ServiceDep) -> PaletteResult:
     Each server could have it's own list of blocks, so use this endpoint as a concrete list
     """
     return service.palette
+
+@app.get("/shapecatalogue")
+def shapecatalogue(service: ServiceDep) -> ShapeCatalogueResult:
+    """
+    Return all available shapes and their descriptions and notes on building
+
+    All shapes available to build are listed, alongside parameters required and how the shape is constructed.
+    For examplet the geometry of using vectors to align walls is described.
+    """
+    return service.shape_catalogue
 
 if __name__ == "__main__":
     import uvicorn    

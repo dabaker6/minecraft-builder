@@ -1,7 +1,7 @@
 from collections import deque
 from uuid import UUID
 
-from core.shapebuilders.schemas import Block
+from core.shapes.schemas import Block
 from core.undoservices.base import Snapshot, UndoService
 
 class Undo(UndoService):

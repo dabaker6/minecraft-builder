@@ -4,7 +4,9 @@ from threading import Lock
 import threading
 import time
 from core.buildservices.base import BuildService
-from core.shapebuilders.shapes import BUILDERS
+from core.shapes.shapecatalogue import ShapeCatalogue
+from core.shapes.shapesbuilder import BUILDERS
+from core.shapes.schemas import Block, BlockInfo, BuildBusyError, BuildInteruptedError, BuildResult, MapResult, PaletteResult, ServerUnavailableError, ShapeCatalogueResult, ShapeSpec, UndoResult
 from core.palettes.palette import BlockPalette, InvalidBlockError
 from core.undoservices.base import Snapshot, UndoService
 import uuid
@@ -13,19 +15,26 @@ from pyclassic import PyClassic
 from pyclassic.queue import ThreadedQueue, QueueError
 from pyclassic.map import ClassicMap
 
-from core.shapebuilders.schemas import Block, BlockInfo, BuildBusyError, BuildInteruptedError, BuildResult, MapResult, PaletteResult, ServerUnavailableError, ShapeSpec, UndoResult
 from core.logging import setup_logging
 
 from api.validator import in_bounds
-from config import SERVER_IP, SERVER_PORT, KEEP_ALIVE_INTERVAL, USERNAME
+from config import SERVER_IP, SERVER_PORT, USERNAME
 
 setup_logging()
 logger = logging.getLogger("minecraft-buildbot-pyclassic")
 
 class ShapeBuilderService(BuildService):
-    def __init__(self, client: PyClassic, undoservice: UndoService, palette: BlockPalette):       
+    def __init__(
+            self, 
+            client: PyClassic,
+            undoservice: UndoService,
+            palette: BlockPalette,
+            catalogue: ShapeCatalogue
+            ):       
         # constructed palette
         self._palette = palette
+        # constructed catalogue
+        self._catalogue = catalogue
         # constructed client
         self._bot = client
         # constructed undoservice
@@ -295,14 +304,22 @@ class ShapeBuilderService(BuildService):
             )
 
     @property
-    def palette(self) -> PaletteResult:
-        self.ensure_connected()
+    def palette(self) -> PaletteResult:        
         items = [BlockInfo(id=bid, name=name) for bid, name in sorted(self._palette.as_dict().items())]
         return PaletteResult(
             source=self._palette.source,
             count=len(self._palette),
             blocks=items
     )
+
+    @property
+    def shape_catalogue(self) -> ShapeCatalogueResult:
+        catalogue = self._catalogue.as_dict()
+        return ShapeCatalogueResult(
+            source=self._catalogue.source,
+            count=len(catalogue),
+            catalogue=catalogue
+            )
 
     def is_valid_block(self, bid: int | str) -> bool:
         return self._palette.is_valid(bid)

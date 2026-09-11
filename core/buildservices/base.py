@@ -1,6 +1,5 @@
 from typing import Protocol
-import uuid
-from core.shapebuilders.schemas import MapResult, PaletteResult, ShapeSpec, UndoResult, BuildResult
+from core.shapes.schemas import MapResult, PaletteResult, ShapeCatalogueResult, ShapeSpec, UndoResult, BuildResult
 
 class BuildService(Protocol):
 
@@ -18,7 +17,7 @@ class BuildService(Protocol):
 
     def is_valid_block(self, bid: str) -> bool:
         ...
-
+        
     @property
     def palette(self) -> PaletteResult:
         ...
@@ -26,3 +25,7 @@ class BuildService(Protocol):
     @property
     def map_size(self) -> MapResult:
         ...        
+
+    @property
+    def shape_catalogue(self) -> ShapeCatalogueResult:
+        ...

@@ -4,7 +4,7 @@ import logging
 from fastmcp import FastMCP
 from core.buildservices.base import BuildService
 from core.factories.build_factory import BuildFactory
-from core.shapebuilders.schemas import BuildResult, MapResult, PaletteResult, ShapeSpec, UndoResult
+from core.shapes.schemas import BuildResult, MapResult, PaletteResult, ShapeCatalogueResult, ShapeSpec, UndoResult
 
 from core.logging import setup_logging
 
@@ -30,8 +30,16 @@ def build(shapes: List[ShapeSpec]) -> BuildResult:
     Multiple shapes can be sent in one request. These shapes are placed in the order given, as a single build. The world uses
     (x, y, z) coordinates where y is height (up). Coordinates must be within the build zone. 
     
-    The size of the map can be obtained through the map tool.
-    
+    For complex shapes, split the build into multiple build requests, for example if building a house, first build the walls, then the roof, then the floor. 
+    This will allow for easier undoing of individual shapes.
+
+    If you aren't confident of a shape, build it and then pause for input from the user before continuing with the next shape. 
+    This will allow for easier undoing of individual components.
+
+    The size of the map can be obtained through the map tool / resource.
+    The available blocks can be obtained through the palette tool / resource.
+    The available shapes can be obtained through the shape catalogue tool / resource 
+
     If a build looks wrong, call the undo tool to revert it.
 
     Returns a unique ID, a list of the names of the shapes placed, the initial number of blocks queued (queued), 
@@ -91,6 +99,25 @@ def get_blockids() -> PaletteResult:
     Each server could have it's own list of blocks, so use this endpoint as a concrete list
     """
     return service.palette
+
+@mcp.resource("catalogue://shapes")
+def shape_catalogue() -> ShapeCatalogueResult:
+    """
+    Returns all available shapes
+
+    All shapes that can be used to build alongside the parameters required to build them, and notes on their usage, including origin, orientation, sizes etc...
+    """
+    return service.shape_catalogue
+
+# In case client does not support resources
+@mcp.tool()
+def get_shape_catalogue() -> ShapeCatalogueResult:
+    """
+    Returns all available shapes
+
+    All shapes that can be used to build alongside the parameters required to build them, and notes on their usage, including origin, orientation, sizes etc...
+    """
+    return service.shape_catalogue
 
 if __name__ == "__main__":
     logger.info("Starting Minecraft Buildbot MCP server")

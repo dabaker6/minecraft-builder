@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Protocol
 import uuid
-from shapebuilders.schemas import Block
+from core.shapes.schemas import Block
 
 @dataclass
 class Snapshot:
@@ -18,4 +18,7 @@ class UndoService(Protocol):
         ...
 
     def get_snapshot(self, ) -> Snapshot | None:
-        ...    
+        ...  
+
+    def clear_snapshots(self) -> None:
+        ...  

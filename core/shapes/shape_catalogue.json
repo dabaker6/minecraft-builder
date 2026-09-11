@@ -1,0 +1,42 @@
+{
+    "block": {
+        "description": "A single block.",
+        "parameters": "x, y, z (coordinates), bid (block type)",
+        "notes": "Creates a single block at the specified location."
+    },
+    "cuboid": {
+        "description": "A solid rectangular box. Fills every block between two opposite corners.",
+        "parameters": "x1,y1,z1 (first corner), x2,y2,z2 (opposite corner), bid (block type)",
+        "notes": "Use for walls, floors, solid blocks. Coordinates can be given in any order."
+    },
+    "wall": {
+        "description": "A wall of blocks extending in a specified direction.",
+        "parameters": "length, height, orientation (direction vector), ox,oy,oz (origin), bid (block type)",
+        "notes": "Orientation is a direction vector (dx, dy, dz) that determines the direction the wall extends from the origin. NORTH = (0, 0, -1), SOUTH = (0, 0,  1), EAST  = (1, 0,  0), WEST  = (-1, 0, 0), e.g. for North wall, orientation = (0, 0, -1) so dx = 0, dy = 0 and dz = -1. The wall will extend in a negative z direction from the origin ox, oy, oz. The wall will be built upwards in the y direction to the specified height."
+    },
+    "emptyCuboid": {
+        "description": "A hollow rectangular box. Fills every block between two opposite corners, except for the interior.",
+        "parameters": "xlength, zlength, height, ox,oy,oz (origin), bid (block type)",
+        "notes": "Use for hollow structures like houses or rooms. The walls are 1 block thick."
+    },
+    "pyramid": {
+        "description": "A stepped pyramid tapering to a point.",
+        "parameters": "size (base width), ox,oy,oz (base origin), bid (block type)",
+        "notes": "The pyramid is built upwards in the y direction, with each level being a smaller square than the one below it. If the pyramid has an odd size, the top level will be a single block. If the pyramid has an even size, the top level will be a 2x2 square."
+    },
+    "floor": {
+        "description": "A flat surface of blocks at a specified height.",
+        "parameters": "x1, y, z1 (first corner), x2, z2 (opposite corner), bid (block type)",
+        "notes": "Creates a flat surface with a thickness of 1 block. The y coordinate specifies the height at which the floor is placed."
+    },
+    "triangle": {
+        "description": "A triangle with a pointed apex, built in a chosen direction.",
+        "parameters": "size (base width), orientation (north/south/east/west), ox,oy,oz (base origin), bid",
+        "notes": "Size must be ODD for a clean pointed apex; even sizes give a flat top. Orientation is a direction vector (dx, dy, dz) that determines the direction the triangle extends from the origin. NORTH = (0, 0, -1), SOUTH = (0, 0,  1), EAST  = (1, 0,  0), WEST  = (-1, 0, 0), e.g. for North wall, orientation = (0, 0, -1) so dx = 0, dy = 0 and dz = -1. The triangle will extend in a negative z direction from the origin ox, oy, oz. The wall will be built upwards in the y direction to the specified height."
+    },
+    "slope": {
+        "description": "A sloped surface of blocks, built in a chosen direction.",
+        "parameters": "length, height, orientation (direction vector), ox,oy,oz (origin), bid (block type)",
+        "notes": "Orientation is a direction vector (dx, dy, dz) that determines the direction the slope extends from the origin. NORTH = (0, 0, -1), SOUTH = (0, 0,  1), EAST  = (1, 0,  0), WEST  = (-1, 0, 0), e.g. for North slope, orientation = (0, 0, -1) so dx = 0, dy = 0 and dz = -1. Additionally px and pz are calculated (perpendicular direction for the slope). This is in the form px, pz = -dz, dx, e.g. for North slope, px = 1 and pz = 0. Therefore for a slope with a north orientation, the slope is extended perpendicular from the origin in a positive x direction. Each subsequent layer is extended in the minus z direction. Note for slopes to allign properly blocks with a height of 1 must be used"
+    }    
+}

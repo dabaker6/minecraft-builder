@@ -1,5 +1,5 @@
 # Vectors to represent allignment
-from shapebuilders.schemas import Block
+from core.shapes.schemas import Block
 
 
 _VECTORS = {
@@ -24,12 +24,19 @@ class Shapes:
 
     @staticmethod
     def block(x: int, y: int, z: int, bid: int) -> list[tuple]:
+        """
+        Creates a single block shape at the specified coordinates (x, y, z) with the given block type ID (bid).
+        """
         coords = []
         coords.append((x, y, z, bid))
         return coords
     
     @staticmethod
     def cuboid(x1, y1, z1, x2, y2, z2, bid) -> list[tuple]:
+        """
+        Creates a cuboid shape with the specified dimensions.
+        The cuboid is built from the first coordinate (x1, y1, z1) to the second coordinate (x2, y2, z2).        
+        """
         ax, ay, az = min(x1, x2), min(y1, y2), min(z1, z2)
         bx, by, bz = max(x1, x2), max(y1, y2), max(z1, z2)
 
@@ -50,8 +57,9 @@ class Shapes:
         EAST  = (1, 0,  0)
         WEST  = (-1, 0, 0)
 
-        e.g. for North wall, orientation = (0, 0, -1)
+        e.g. for North wall, orientation = (0, 0, -1) 
         dx = 0, dy = 0, dz = -1        
+        the wall will extend in a negative x direction from the origin ox, oy, oz. The wall will be built upwards in the y direction to the specified height.
         """
         dx, _, dz = orientation # Unpack the orientation tuple into dx, dy, dz
         
@@ -66,6 +74,11 @@ class Shapes:
 
     @staticmethod
     def emptyCuboid(xlength, zlength, height, ox, oy, oz, bid) -> list[tuple]:
+        """
+        Creates an empty cuboid shape with the specified dimensions.
+        The empty cuboid is hollow, with walls of 1 block thickness. The origin (ox, oy, oz) is one of the corners of the cuboid. 
+        The cuboid is built upwards in the y direction, to the specified height. The xlength and zlength specify the length of the cuboid in the x and z planes respectively.
+        """
         coords = Shapes.wall(xlength,height,_VECTORS["east"],ox,oy,oz,bid) + \
         Shapes.wall(xlength,height,_VECTORS["east"],ox,oy,oz+zlength-1,bid) + \
         Shapes.wall(zlength-2,height,_VECTORS["south"],ox,oy,oz+1,bid) + \
@@ -75,6 +88,12 @@ class Shapes:
 
     @staticmethod
     def pyramid(size, ox, oy, oz, bid) -> list[tuple]:
+        """
+        Creates a pyramid shape with the specified dimensions.
+        Size is the length of the base of the pyramid. The pyramid starts at the origin (ox, oy, oz) and this is one of the corners of the base. 
+        The pyramid is built upwards in the y direction, with each level being a smaller square than the one below it.
+        If the pyramid has an odd size, the top level will be a single block. If the pyramid has an even size, the top level will be a 2x2 square.
+        """
         coords = []
         for y in range(0, size // 2):
             levelsize = size - (y * 2)
@@ -88,10 +107,25 @@ class Shapes:
     
     @staticmethod
     def floor(x1, y, z1, x2, z2, bid) -> list[tuple]:
+        """
+        Creates a floor shape with the specified dimensions.
+        The floor is built from the first coordinate (x1, y, z1) to the second coordinate (x2, y, z2).
+        The floor is a flat surface with a thickness of 1 block. The y coordinate specifies the height at which the floor is placed.
+        """
         return Shapes.cuboid(x1, y, z1, x2, y, z2, bid )
 
     @staticmethod
     def triangle(size, orientation, ox, oy, oz, bid) -> list[tuple]:        
+        """
+        Creates a triangular shape with the specified dimensions and orientation.
+        NORTH = (0, 0, -1)
+        SOUTH = (0, 0,  1)
+        EAST  = (1, 0,  0)
+        WEST  = (-1, 0, 0)
+
+        e.g. for north triangle, orientation = (0, 0, -1)
+        dx = 0, dy = 0, dz = -1        
+        """            
         coords = []        
 
         dx, _, dz = orientation # Unpack the orientation tuple into dx, dy, dz

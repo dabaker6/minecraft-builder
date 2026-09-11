@@ -1,8 +1,8 @@
 from collections import deque
 from uuid import UUID
 
-from shapebuilders.schemas import Block
-from undoservice.base import Snapshot, UndoService
+from core.shapes.schemas import Block
+from core.undoservices.base import Snapshot, UndoService
 
 class Undo(UndoService):
     def __init__(self):
@@ -14,3 +14,6 @@ class Undo(UndoService):
     def get_snapshot(self) -> Snapshot | None:
         if self._stack:
             return self._stack.pop()
+
+    def clear_snapshots(self) -> None:
+        self._stack.clear()

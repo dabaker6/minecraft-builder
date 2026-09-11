@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -9,3 +10,7 @@ AUTH_PROVIDER = os.getenv("AUTH_PROVIDER", "throwaway")
 SHAPE_BUILDER = os.getenv("SHAPE_BUILDER", "pyclassic")
 USERNAME = os.getenv("USERNAME", "buildbot")
 SNAPSHOT_STORE = os.getenv("SNAPSHOT_STORE", "in_memory")
+BLOCK_PALETTE = os.getenv("BLOCK_PALETTE", "classic")
+PALETTE_DIR = Path(os.getenv("PALETTE_DIR", Path(__file__).parent / "core/palettes"))
+SHAPE_CATALOGUE = os.getenv("SHAPE_CATALOGUE", "shape_catalogue")
+SHAPE_CATALOGUE_DIR = Path(os.getenv("SHAPE_CATALOGUE_DIR", Path(__file__).parent / "core/shapes"))
